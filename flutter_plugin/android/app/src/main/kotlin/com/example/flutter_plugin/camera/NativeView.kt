@@ -46,6 +46,7 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
 
     private val methodChannel: MethodChannel = MethodChannel(messenger, "camera/camera_$id")
     private val methodChannel2: MethodChannel = MethodChannel(messenger, "codeMRZ")
+    private val methodChannel3: MethodChannel = MethodChannel(messenger, "callBackCodeMRZ")
 
     private var hasFaceDetection: Boolean = false
     private var cameraPosition: String = "F"
@@ -134,9 +135,6 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
             "pauseCamera" -> {
                 cameraProvider?.unbindAll();
             }
-            "textResult" -> {
-
-            }
             else -> result.notImplemented()
         }
     }
@@ -147,21 +145,28 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
 
     override fun onChangeTextResult(mrz: String) {
         Log.d("ok", mrz)
-
-        methodChannel2.setMethodCallHandler {
-            call, result ->
-            if (call.method == "getMRZ") {
-                val codeMRZ = mrz
-
-                if (codeMRZ != null) {
-                    result.success(codeMRZ)
-                } else {
-                    result.error("UNAVAILABLE", "Không bắt được mã MRZ", null)
+        io.reactivex.rxjava3.core.Observable.just(Unit)
+                .observeOn(AndroidSchedulers.mainThread())
+                .take(1)
+                .subscribe {
+                    Log.d("ok","callBack" )
+                    methodChannel.invokeMethod("callBack", mrz)
                 }
-            } else {
-                result.notImplemented()
-            }
-        }
+
+//        methodChannel2.setMethodCallHandler {
+//            call, result ->
+//            if (call.method == "getMRZ") {
+//                val codeMRZ = mrz
+//
+//                if (codeMRZ != null) {
+//                    result.success(codeMRZ)
+//                } else {
+//                    result.error("UNAVAILABLE", "Không bắt được mã MRZ", null)
+//                }
+//            } else {
+//                result.notImplemented()
+//            }
+//        }
 
     }
 }

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'camera_kit_controller.dart';
+import 'dart:developer' as developer;
 
 enum CameraPosition { back, front }
 
@@ -134,10 +135,16 @@ class NativeCameraKitController {
   final MethodChannel _channel;
 
   Future<dynamic> nativeMethodCallHandler(MethodCall methodCall) async {
-    if (methodCall.method == "getMRZ" &&
+    // developer.log("////////${methodCall.arguments}", name: 'ok');
+    if (methodCall.method == "callBack" &&
         widget.showTextResult != null) {
       widget.showTextResult(methodCall.arguments);
+      // developer.log("////////${methodCall.arguments}", name: 'ok');
     }
+    // if (methodCall.method == "getMRZ" &&
+    //     widget.showTextResult != null) {
+    //   widget.showTextResult(methodCall.arguments);
+    // }
     return null;
   }
 

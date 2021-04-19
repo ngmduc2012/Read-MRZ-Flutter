@@ -75,7 +75,6 @@ open class LuminosityAnalyzer(private val listener: LuminnosityAnalyzerCallBack)
 //                    Log.d("ok", textIndex)
                     textMRZResult = findTextMRZ(textIndex)
                     if (textMRZResult.length == 90) {
-
 //                        Log.d("ok", findTextMRZ(textIndex))
                         if (listTextArray.size < 5) {
                             listTextArray.add(textMRZResult)
