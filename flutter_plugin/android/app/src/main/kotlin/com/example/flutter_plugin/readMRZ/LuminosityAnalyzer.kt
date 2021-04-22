@@ -1,14 +1,15 @@
 package com.example.flutter_plugin.readMRZ
 
+import android.R.attr.angle
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import com.example.flutter_plugin.camera.NativeView
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.google.firebase.ml.vision.text.FirebaseVisionText
-import java.nio.ByteBuffer
 import java.util.*
 
 
@@ -20,13 +21,18 @@ open class LuminosityAnalyzer(private val listener: LuminnosityAnalyzerCallBack)
     var line3Result: String = ""
     var textMRZResult: String = ""
     var i : Int = 0
+    val countOfCheck = 5;
 
     private fun findTextMRZ(text: String): String {
         var line1: String = text.substring(0, 30)
         var line2: String = text.substring(30, 60)
         var line3: String = text.substring(60, 90)
-        line1 = line1.substring(0,5)+line1.substring(5).replace("O","0")
-        line2 = line2.substring(0,29)+line2.substring(29).replace("O","0")
+        line1 = line1.substring(0, 5)+line1.substring(5).replace("O", "0")
+        line2 = line2.substring(0, 29)+line2.substring(29).replace("O", "0")
+        line3 = line3.replace("K<", "<<")
+        line3 = line3.replace("S<", "<<")
+        line3 = line3.replace("s<", "<<")
+        line3 = line3.replace("k<", "<<")
         val pattern1 = "I[A-Z]{4}[0-9]{22}+<{2}[0-9]{1}".toRegex()
         val pattern2 = "[A-Z0-9]{2,30}+<{2,20}[0-9]{1}".toRegex()
         val pattern3 = "\\w+<<(\\w+<)+<{3,15}".toRegex()
@@ -41,7 +47,6 @@ open class LuminosityAnalyzer(private val listener: LuminnosityAnalyzerCallBack)
             line3Result = line3
         }
         return line1Result + line2Result + line3Result
-
     }
 
     private fun compareText(list: ArrayList<String>): String {
@@ -69,22 +74,30 @@ open class LuminosityAnalyzer(private val listener: LuminnosityAnalyzerCallBack)
         for (block in resultText.textBlocks) {
             var textIndex = block.text
             if (textIndex.length >= 90 && textIndex.startsWith("I")) {
+//                Log.d("ok", textIndex)
                 textIndex = textIndex.replace(" ", "").trim()
                 textIndex = textIndex.replace("\n", "")
+                textIndex = textIndex.replace("<S<", "<<<")
+                textIndex = textIndex.replace("<K<", "<<<")
+                textIndex = textIndex.replace("<K<", "<<<")
+                textIndex = textIndex.replace("<s<", "<<<")
                 if (textIndex.length == 90) {
-//                    Log.d("ok", textIndex)
+                    Log.d("ok", textIndex)
                     textMRZResult = findTextMRZ(textIndex)
                     if (textMRZResult.length == 90) {
 //                        Log.d("ok", findTextMRZ(textIndex))
-                        if (listTextArray.size < 5) {
-                            listTextArray.add(textMRZResult)
-                        } else {
-                            if (i == 5) i = 0
-//                            Log.d("ok", i.toString())
-                            listTextArray[i] =  textMRZResult
-                            i++
-                            listener.onChangeTextResult(compareText(listTextArray))
-                        }
+                        listener.onChangeTextResult(textMRZResult)
+//                        if (listTextArray.size < countOfCheck) {
+//                            listTextArray.add(textMRZResult)
+//                        } else {
+//                            if (i == countOfCheck) i = 0
+////                            Log.d("ok", i.toString())
+//                            listTextArray[i] =  textMRZResult
+//                            i++
+//                            listener.onChangeTextResult(compareText(listTextArray))
+////                            listTextArray.clear()
+////                            listTextArray.add("")
+//                        }
                     }
                 }
             }
@@ -93,7 +106,14 @@ open class LuminosityAnalyzer(private val listener: LuminnosityAnalyzerCallBack)
 
     @SuppressLint("UnsafeExperimentalUsageError")
     override fun analyze(imageProxy: ImageProxy) {
-        val image = FirebaseVisionImage.fromBitmap(BitmapUtils.getBitmap(imageProxy)!!)
+//        val rotation = imageProxy.imageInfo.rotationDegrees
+//        Log.d("ok", "rotation: $rotation")
+        val source = BitmapUtils.getBitmap(imageProxy)!!
+        val rotateBitmap : Bitmap
+        val matrix = Matrix()
+        matrix.postRotate(270f)
+        rotateBitmap = Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true)
+        val image = FirebaseVisionImage.fromBitmap(rotateBitmap)
         val detector = FirebaseVision.getInstance().onDeviceTextRecognizer
         detector.processImage(image)
                 .addOnSuccessListener { firebaseVisionText ->

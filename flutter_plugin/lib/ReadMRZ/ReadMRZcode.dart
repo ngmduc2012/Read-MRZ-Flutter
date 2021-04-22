@@ -8,7 +8,7 @@ class readMRZ {
   }
 
   String documentNumber(String textMRZcode) {
-    return textMRZcode.substring(5, 14);
+    return textMRZcode.substring(15, 27);
   }
 
   String documentNumberCheckDigit(String textMRZcode) {
@@ -20,12 +20,14 @@ class readMRZ {
   }
 
   String birthDate(String textMRZcode) {
+    return textMRZcode.substring(30, 36);
+  }
+  String showBirthDate(String textMRZcode){
     String yeas = "20";
     if(int.parse(textMRZcode.substring(30,32)) > DateTime.now().year % 100){
       yeas = "19";
     }
     return textMRZcode.substring(34,36) + "/" + textMRZcode.substring(32,34) + "/" + yeas + textMRZcode.substring(30,32);
-    // return textMRZcode.substring(30, 36);
   }
 
   String birthDateCheckDigit(String textMRZcode) {
@@ -42,11 +44,13 @@ class readMRZ {
   }
 
   String expiryDate(String textMRZcode) {
+    return textMRZcode.substring(38, 44);
+  }
+  String showExpiryDate(String textMRZcode){
     if(textMRZcode.substring(42,44) + "/" + textMRZcode.substring(40,42) + "/${(DateTime.now().year/100).toInt()}"  + textMRZcode.substring(38,40) ==  "31/12/2099"){
       return "Không thời hạn";
     }
     return textMRZcode.substring(42,44) + "/" + textMRZcode.substring(40,42) + "/${(DateTime.now().year/100).toInt()}"  + textMRZcode.substring(38,40);
-    // return textMRZcode.substring(38, 44);
   }
 
   String expiryDateCheckDigit(String textMRZcode) {

@@ -3,39 +3,41 @@ package com.example.flutter_plugin.camera
 
 import android.content.ContentValues.TAG
 import android.content.Context
+
 import android.util.Log
 import android.view.View
+
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
-import androidx.camera.core.impl.Observable
+
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
+
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import com.example.flutter_plugin.MainActivity
+
 import com.example.flutter_plugin.R
 import com.example.flutter_plugin.readMRZ.LuminnosityAnalyzerCallBack
 import com.example.flutter_plugin.readMRZ.LuminosityAnalyzer
-import io.flutter.embedding.android.FlutterActivity
+
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.core.Flowable.just
+
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 typealias LumaListener = (luma: Double) -> Unit
 
 class NativeView(private val context: Context, messenger: BinaryMessenger,
-                          id: Int, private val creationParams: Map<String?, Any?>?) : PlatformView, MethodChannel.MethodCallHandler,
-        LifecycleOwner, LuminnosityAnalyzerCallBack{
-//    private val textView: TextView
+                 id: Int, private val creationParams: Map<String?, Any?>?) : PlatformView, MethodChannel.MethodCallHandler,
+        LifecycleOwner, LuminnosityAnalyzerCallBack {
 
     private val lifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
     private val cameraKitView: View = View.inflate(context, R.layout.mainactivity, null)
@@ -45,11 +47,12 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
     private var cameraProvider: ProcessCameraProvider? = null
 
     private val methodChannel: MethodChannel = MethodChannel(messenger, "camera/camera_$id")
-    private val methodChannel2: MethodChannel = MethodChannel(messenger, "codeMRZ")
-    private val methodChannel3: MethodChannel = MethodChannel(messenger, "callBackCodeMRZ")
+    private val methodChannel1: MethodChannel = MethodChannel(messenger, "FlashLight")
 
     private var hasFaceDetection: Boolean = false
     private var cameraPosition: String = "F"
+    private var changeFlashlight: Boolean = true
+
 
     override fun getView(): View {
         return cameraKitView
@@ -65,6 +68,7 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
         cameraPreview = cameraKitView.findViewById(R.id.preview_view)
         methodChannel.setMethodCallHandler(this)
         cameraExecutor = Executors.newSingleThreadExecutor()
+
     }
 
     private fun startCamera() {
@@ -100,9 +104,20 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
                 cameraProvider?.unbindAll()
 
                 // Bind use cases to camera
-                cameraProvider?.bindToLifecycle(
+                val cameraFlashLight = cameraProvider?.bindToLifecycle(
                         this, cameraSelector, preview, imageCapture, imageAnalyzer
                 )
+                methodChannel1.setMethodCallHandler() { call, result ->
+                    if (call.method == "btnFlashLight") {
+                        cameraFlashLight?.cameraInfo?.hasFlashUnit()
+                        cameraFlashLight?.cameraControl?.enableTorch(changeFlashlight)
+                        changeFlashlight = !changeFlashlight
+                        result.success(changeFlashlight)
+                    } else {
+                        result.notImplemented()
+                    }
+                }
+
 
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -114,7 +129,7 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "initCamera" -> {
-                Log.d("ok", "initCamera")
+//                Log.d("ok", "initCamera")
                 hasFaceDetection = call.argument<Boolean>("hasFaceDetection") ?: false
                 cameraPosition = call.argument<String>("cameraPosition") ?: "F"
                 lifecycleRegistry.currentState = Lifecycle.State.RESUMED
@@ -144,29 +159,14 @@ class NativeView(private val context: Context, messenger: BinaryMessenger,
     }
 
     override fun onChangeTextResult(mrz: String) {
-        Log.d("ok", mrz)
+//        Log.d("ok", mrz)
         io.reactivex.rxjava3.core.Observable.just(Unit)
                 .observeOn(AndroidSchedulers.mainThread())
                 .take(1)
                 .subscribe {
-                    Log.d("ok","callBack" )
+//                    Log.d("ok","callBack" )
                     methodChannel.invokeMethod("callBack", mrz)
                 }
-
-//        methodChannel2.setMethodCallHandler {
-//            call, result ->
-//            if (call.method == "getMRZ") {
-//                val codeMRZ = mrz
-//
-//                if (codeMRZ != null) {
-//                    result.success(codeMRZ)
-//                } else {
-//                    result.error("UNAVAILABLE", "Không bắt được mã MRZ", null)
-//                }
-//            } else {
-//                result.notImplemented()
-//            }
-//        }
-
     }
+
 }
